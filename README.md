@@ -1,81 +1,46 @@
-# Compiler Principles — Lexer Project
+# Lexer — Automatic Lexical Analysis with Flex
 
-**Topic:** Usage of Automatic Construction Tools for Lexical Analysis Programs
-**Tool used:** **Flex** (Fast Lexical Analyzer Generator)
-**Course:** Compiler Principles, Spring 2026
+> A scanner for a C-like language built using Flex (the automatic DFA generator) — outputs typed tokens with precise line/column positions. Includes a portable Python verification runner that produces identical output without any C toolchain.
 
-## Group members
+![C](https://img.shields.io/badge/C-primary%20deliverable-A8B9CC?logo=c&logoColor=white)
+![Flex](https://img.shields.io/badge/Tool-Flex%20(Fast%20Lex)-lightgrey)
+![Python](https://img.shields.io/badge/Python-verification%20runner-3776AB?logo=python&logoColor=white)
+![Course](https://img.shields.io/badge/Course-Compiler%20Principles-blueviolet)
 
-| Name                  | Student ID    |
-|-----------------------|---------------|
-| Bakbergen Amir        | 202469990559  |
-| Bakbergen Alen        | 202469990562  |
-| Huang Liu Diego David | 202469990549  |
-| Liu Bryan             | 202469990275  |
+---
 
-## What this project does
+## What It Does
 
-We use **Flex**, an automatic lexical-analyzer generator, to build a scanner for a small C-like language. The scanner reads a source file and produces a stream of typed tokens (keyword, identifier, integer constant, float constant, string, character, operator, punctuation, comment) with line/column positions. Lexical errors are reported with location.
+The lexer reads a C-like source file and produces a stream of typed tokens — one per line — with the format `line:col  CATEGORY  lexeme`. It recognises keywords, identifiers, integer and float constants, string and character literals, operators (including multi-character ones like `<=`, `&&`, `++`), punctuation, and comments. Lexical errors are reported with exact source location.
 
-The Flex specification (`lexer.l`) declares regular expressions for every token category and lets Flex generate a deterministic finite automaton (DFA) that drives a fast C scanner. We never hand-code the DFA.
+The core deliverable is a **Flex specification** (`lexer.l`). Flex compiles it into a table-driven deterministic finite automaton (DFA) in C. We never hand-code the DFA — the point is to demonstrate how formal regular expressions drive the automatic generation of a fast scanner.
 
-## File layout
+---
 
-| File                | Purpose                                                       |
-|---------------------|---------------------------------------------------------------|
-| `lexer.l`           | **Primary deliverable** — Flex specification of the scanner   |
-| `test.c`            | Sample input that exercises every token category              |
-| `Makefile`          | One-command build / run / clean                               |
-| `lexer_demo.py`     | Portable Python verification runner (same regexes, same output) |
-| `output.txt`        | Captured token stream for `test.c`                            |
-| `screenshots/`      | Demo screenshots referenced from the slides                   |
-| `summary.md`        | Test-case summaries and observations                          |
-| `slides.pptx`       | Project presentation                                          |
+## Screenshots
 
-## How to build and run
+| Token stream (part 1) | Token stream (part 2) | Build & run |
+|---|---|---|
+| ![Output 1](screenshots/01-lexer-output-part1.png) | ![Output 2](screenshots/02-lexer-output-part2.png) | ![Build](screenshots/03-build-and-run.png) |
 
-### Option A — Flex + GCC (the actual deliverable)
+---
 
-```bash
-flex   lexer.l                   # produces lex.yy.c
-gcc    lex.yy.c -o lexer -lfl    # macOS: replace -lfl with -ll
-./lexer test.c                   # or: ./lexer < test.c
-```
+## Token Categories
 
-Or simply:
+| Category | Examples |
+|---|---|
+| `KEYWORD` | `if` `else` `while` `for` `return` `int` `float` `void` `struct` `sizeof` |
+| `IDENT` | `factorial` `pi` `letter` `n` |
+| `INT_CONST` | `42` `0` `100` |
+| `FLT_CONST` | `3.14159` `2.718e+0` |
+| `STR_CONST` | `"Hello, Compiler!"` |
+| `CHR_CONST` | `'A'` `'\n'` |
+| `OPERATOR` | `+` `-` `*` `/` `==` `!=` `<=` `>=` `&&` `\|\|` `++` `--` `+=` |
+| `PUNCT` | `(` `)` `{` `}` `[` `]` `;` `,` `.` `:` |
+| `COMMENT` | `// ...` and `/* ... */` |
+| `[error]` | any unrecognised character (with location) |
 
-```bash
-make          # build
-make run      # build + run on test.c
-make clean    # remove generated files
-```
-
-### Option B — Portable Python runner (no toolchain needed)
-
-```bash
-python3 lexer_demo.py test.c
-```
-
-This script encodes the **same regular expressions** used in `lexer.l`, so the token stream is identical. We provide it so the scanner can be demonstrated on any machine without installing Flex / a C compiler.
-
-## Token categories recognised
-
-```
-KEYWORD     if else while for do return break continue
-            int float double char void const struct typedef
-            sizeof switch case default
-IDENT       [A-Za-z_][A-Za-z0-9_]*
-INT_CONST   [0-9]+
-FLT_CONST   [0-9]+.[0-9]+([eE][+-]?[0-9]+)?
-STR_CONST   "..."  (with escapes)
-CHR_CONST   '.'    (with escapes)
-OPERATOR    + - * / % = < > ! & | ^ ~
-            == != <= >= && || ++ -- += -= *= /= ->
-PUNCT       ( ) { } [ ] ; , . : ? #
-COMMENT     // ...   and   /* ... */
-```
-
-Whitespace and newlines are consumed silently; line / column counters are updated so error messages can point to the exact location.
+---
 
 ## Result on `test.c`
 
@@ -83,4 +48,111 @@ Whitespace and newlines are consumed silently; line / column counters are update
 Summary: total=155  keywords=22  identifiers=35  numbers=13  operators=20  errors=1
 ```
 
-The single reported error corresponds to the deliberate stray `@` character we inserted at the end of `test.c` to demonstrate the scanner's error-reporting feature.
+The single error is a deliberate stray `@` we inserted to demonstrate error recovery — the scanner reports `line 38 col 8` and continues tokenising normally.
+
+---
+
+## How to Build and Run
+
+### Option A — Flex + GCC (primary)
+
+```bash
+flex lexer.l                    # generates lex.yy.c
+gcc  lex.yy.c -o lexer -lfl    # macOS: replace -lfl with -ll
+./lexer test.c
+```
+
+Or with the Makefile:
+
+```bash
+make          # build
+make run      # build + scan test.c
+make clean    # remove generated files
+```
+
+### Option B — Python runner (no C toolchain needed)
+
+```bash
+python3 lexer_demo.py test.c
+```
+
+The Python script implements the **same regular expressions** in the same priority order as `lexer.l`. Output format and token counts are identical — we use it as a regression check on the Flex specification.
+
+---
+
+## Project Layout
+
+```
+lexer-project/
+  lexer.l           # Flex specification — primary deliverable
+  test.c            # sample input covering every token category
+  Makefile          # build / run / clean
+  lexer_demo.py     # Python verification runner (same regexes, same output)
+  output.txt        # captured token stream for test.c
+  summary.md        # test-case analysis and observations
+  screenshots/      # terminal screenshots referenced in slides
+  slides.pptx       # project presentation
+```
+
+---
+
+## How Flex Works (the key idea)
+
+A Flex `.l` file has three sections:
+
+```
+%{ ... %}            ← C declarations and #includes
+%%
+REGEX  { action; }   ← one rule per token; Flex picks the longest match
+%%
+int main() { ... }   ← driver code
+```
+
+Flex reads the rules, builds a DFA, and emits an optimised C file (`lex.yy.c`). The DFA runs in O(n) time over the input — each character is visited exactly once. Multi-character operators are placed *before* single-character ones so Flex's longest-match rule picks `<=` over `<` followed by `=`.
+
+---
+
+## Test Program Design
+
+`test.c` is written to hit every rule at least once:
+
+| Construct | Token exercised |
+|---|---|
+| `#include <stdio.h>` | `#`, identifiers, `<`, `>` |
+| `// single-line comment` | line comment rule |
+| `/* multi-line comment */` | block comment, multi-line column tracking |
+| `int factorial(int n)` | keyword, identifier, punctuation |
+| `if (n <= 1) return 1;` | `if`, `<=`, `return`, integer literal |
+| `float pi = 3.14159;` | float literal |
+| `char letter = 'A';` | character literal |
+| `const char *msg = "Hello, Compiler!";` | string literal |
+| `for (int i = 0; i < 5; i++)` | `for`, `++` |
+| `int bad@token = 0;` | **deliberate `@` error** |
+
+---
+
+## What I Learned
+
+- **DFA generation** — understanding that Flex converts regex rules into a state-transition table made the "how does a scanner run so fast?" question concrete; it's a lookup table, not recursive matching
+- **Longest-match rule** — rule ordering matters: without placing `==` before `=`, the scanner produces two tokens instead of one
+- **Line/column tracking** — maintaining position across multi-line block comments requires explicit `\n` counting in the comment rule's action; Flex doesn't do it automatically
+- **Portable fallback** — writing the Python runner to mirror the Flex rules forced a precise understanding of each regex, which caught two ambiguities in early drafts
+
+---
+
+## My Role
+
+Wrote the Flex specification (`lexer.l`), designed and implemented the `test.c` sample covering all token categories including deliberate error, wrote the Python verification runner (`lexer_demo.py`), and compiled the output analysis in `summary.md`.
+
+---
+
+## Team
+
+| Member | Student ID |
+|---|---|
+| Bakbergen Amir | 202469990559 |
+| Bakbergen Alen | 202469990562 |
+| Huang Liu Diego David | 202469990549 |
+| Liu Bryan | 202469990275 |
+
+*Lab project — Compiler Principles course, Spring 2026*
