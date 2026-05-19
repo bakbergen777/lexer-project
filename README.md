@@ -52,6 +52,45 @@ The single error is a deliberate stray `@` we inserted to demonstrate error reco
 
 ---
 
+## Example
+
+**Input** (`example.c`):
+
+```c
+int x = 10;
+if (x > 5) {
+    x = x + 1;
+}
+```
+
+**Output**:
+
+```
+1:1    KEYWORD     int
+1:5    IDENT       x
+1:7    OPERATOR    =
+1:9    INT_CONST   10
+1:11   PUNCT       ;
+2:1    KEYWORD     if
+2:4    PUNCT       (
+2:5    IDENT       x
+2:7    OPERATOR    >
+2:9    INT_CONST   5
+2:10   PUNCT       )
+2:12   PUNCT       {
+3:5    IDENT       x
+3:7    OPERATOR    =
+3:9    IDENT       x
+3:11   OPERATOR    +
+3:13   INT_CONST   1
+3:14   PUNCT       ;
+4:1    PUNCT       }
+
+Summary: total=19  keywords=2  identifiers=4  numbers=2  operators=4  errors=0
+```
+
+---
+
 ## How to Build and Run
 
 ### Option A — Flex + GCC (primary)
